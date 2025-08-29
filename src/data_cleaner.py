@@ -76,3 +76,43 @@ def clean_timing_cols(df):
     drop_cols = [c for c in df.columns if any(key in c.upper() for key in ['YEARMONTH', '_TIME','_DATE'])]
     df.drop(columns=drop_cols, inplace=True, errors='ignore')
     df.drop(columns=['MONTH_NAME'], inplace=True, errors='ignore')  # redundant with BEGIN_MONTH_NAME
+
+
+
+def clean_location_cols(df):
+    """
+    Cleans the location-related columns in NOAA storm events DataFrame in place.
+    
+    Operations:
+    - Keeps only relevant location columns
+    - Casts categorical columns to 'category' type
+    - Standardizes CZ_TYPE values
+    - Strips whitespace from BEGIN_LOCATION
+    - Creates a combined LOCATION_LABEL for tooltips
+    - Does NOT drop any rows (keep missing coordinates)
+    
+    Changes are applied in place.
+    """
+    # Keep only relevant columns (in place)
+    keep_cols = ['STATE', 'CZ_TYPE', 'CZ_NAME', 'BEGIN_LOCATION', 'BEGIN_LAT', 'BEGIN_LON']
+    for col in df.columns:
+        if col not in keep_cols:
+            df.drop(columns=col, inplace=True)
+    
+    # Cast categorical columns
+    cat_cols = ['STATE', 'CZ_TYPE', 'CZ_NAME', 'BEGIN_LOCATION']
+    for col in cat_cols:
+        df[col] = df[col].astype('category')
+    
+    # Standardize CZ_TYPE
+    df['CZ_TYPE'] = df['CZ_TYPE'].map({'C': 'County', 'Z': 'Zone'}).astype('category')
+    
+    # Clean BEGIN_LOCATION strings
+    df['BEGIN_LOCATION'] = df['BEGIN_LOCATION'].str.strip()
+    
+    # Create combined LOCATION_LABEL for tooltips
+    df['LOCATION_LABEL'] = (
+        df['BEGIN_LOCATION'].fillna('') + ', ' +
+        df['CZ_NAME'].astype(str) + ', ' +
+        df['STATE'].astype(str)
+    ).str.strip(', ')
