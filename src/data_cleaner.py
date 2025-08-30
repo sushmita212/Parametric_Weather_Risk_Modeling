@@ -21,8 +21,9 @@ def clean_id_cols(df):
     
     # When df is the merged dataframe from details, fatalities, and locations. We get 'EPISODE_ID_x' and 'EPISODE_ID_y' 
     # form details and locations, but they are duplicates. We can drop one and rename the other.
-    df.rename(columns={'EPISODE_ID_x': 'EPISODE_ID'}, inplace=True)
-    df.drop(columns=['EPISODE_ID_y'], inplace=True)
+    if 'EPISODE_ID_x' in df.columns and 'EPISODE_ID_y' in df.columns:
+        df.rename(columns={'EPISODE_ID_x': 'EPISODE_ID'}, inplace=True)
+        df.drop(columns=['EPISODE_ID_y'], inplace=True)
 
 
     # Identify all ID columns
@@ -30,6 +31,7 @@ def clean_id_cols(df):
 
     # Convert ID columns to category type
     for col in ID_cols:
+        df[col] = df[col].astype("Int64")  # capital I, pandas nullable integer
         df[col] = df[col].astype('category') 
 
 
@@ -93,9 +95,12 @@ def clean_location_cols(df):
     
     Changes are applied in place.
     """
+    # Identify location-related columns
+    location_cols = [col for col in df.columns 
+                 if any(key in col.upper() for key in ['STATE', 'LAT', 'LON', 'LOCATION', 'RANGE', 'AZIMUTH', 'CZ_'])]
     # Keep only relevant columns (in place)
     keep_cols = ['STATE', 'CZ_TYPE', 'CZ_NAME', 'BEGIN_LOCATION', 'BEGIN_LAT', 'BEGIN_LON']
-    for col in df.columns:
+    for col in location_cols:
         if col not in keep_cols:
             df.drop(columns=col, inplace=True)
     
@@ -116,3 +121,49 @@ def clean_location_cols(df):
         df['CZ_NAME'].astype(str) + ', ' +
         df['STATE'].astype(str)
     ).str.strip(', ')
+
+
+
+def clean_damage_cols(df):
+    """
+    Cleans damage-related columns in NOAA storm events DataFrame.
+    Converts damage amount columns to numeric, handling suffixes like 'K', 'M', 'B'.
+    Converts count columns (fatalities, injuries) to Int64 (nullable integer).
+    """
+    # Drop unwanted columns
+    # 'FATALITY_TYPE' is redudant with 'DEATHS_DIRECT' and 'DEATHS_INDIRECT'
+    # We don't want to do demographic analysis so we can drop 'FATALITY_AGE' and 'FATALITY_SEX'
+    cols_to_drop = ['FATALITY_TYPE','FATALITY_AGE','FATALITY_SEX']
+    df.drop(columns=cols_to_drop, inplace=True, errors='ignore')
+
+    def parse_damage(val):
+        """
+        Convert damage strings like '25K', '2.5M', '100B' into floats (dollars).
+        Returns pd.NA if invalid.
+        """
+        if pd.isna(val):
+            return pd.NA
+        val = str(val).upper().strip()  # normalize
+        multipliers = {"K": 1_000, "M": 1_000_000, "B": 1_000_000_000}
+        if val[-1] in multipliers:
+            try:
+                return float(val[:-1]) * multipliers[val[-1]]
+            except ValueError:
+                return pd.NA
+        try:
+            return float(val)
+        except ValueError:
+            return pd.NA
+
+    # Parse damage amount columns
+    damage_amount_cols = ['DAMAGE_CROPS', 'DAMAGE_PROPERTY']
+    for col in damage_amount_cols:
+        if col in df.columns:
+            df[col] = df[col].map(parse_damage)
+            df[col] = pd.to_numeric(df[col], errors='coerce')  # converts to float dtype with NaNs
+           
+
+
+    
+
+
