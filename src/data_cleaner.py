@@ -179,3 +179,31 @@ def clean_severity_cols(df):
     df["TOR_F_SCALE"] = df["TOR_F_SCALE"].map(tor_scale_map).astype("Int64")
 
 
+
+# cleaning.py
+import pandas as pd
+
+def load_yearly_and_clean(year, base_dir="../data"):
+    """Load and clean NOAA data for a given year (in place)."""
+    
+    fileDName = f"{base_dir}/details/details_{year}.csv.gz"
+    fileFName = f"{base_dir}/fatalities/fatalities_{year}.csv.gz"
+    fileLName = f"{base_dir}/locations/locations_{year}.csv.gz"
+
+    df_d = pd.read_csv(fileDName)
+    df_f = pd.read_csv(fileFName)
+    df_l = pd.read_csv(fileLName)
+
+    # Merge
+    df_year = df_d.merge(df_f, on="EVENT_ID", how="left")
+    df_year = df_year.merge(df_l, on="EVENT_ID", how="left")
+
+    # Clean (mutates in place)
+    drop_unwanted_cols(df_year)
+    clean_id_cols(df_year)
+    clean_timing_cols(df_year)
+    clean_location_cols(df_year)
+    clean_damage_cols(df_year)
+    clean_severity_cols(df_year)
+    
+    return df_year
