@@ -164,6 +164,18 @@ def clean_damage_cols(df):
            
 
 
-    
+def clean_severity_cols(df):
+    """
+    Cleans severity-related columns in NOAA storm events DataFrame.
+
+    """
+    # drop flood cause as it is mostly heavy rain
+    df.drop(columns=['FLOOD_CAUSE'], inplace=True, errors='ignore')
+
+    # Map TOR_F_SCALE scale to numeric
+    tor_scale_map = {
+        "EF0": 0, "EF1": 1, "EF2": 2, "EF3": 3, "EF4": 4, "EF5": 5
+    }
+    df["TOR_F_SCALE"] = df["TOR_F_SCALE"].map(tor_scale_map).astype("Int64")
 
 
