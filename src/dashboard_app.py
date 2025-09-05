@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 
 # load cleaned data
-df = pd.read_parquet("data/cleaned/storms_1996_2025.parquet")
+df = pd.read_parquet("data/cleaned/all_years_cleaned.parquet")
 
 st.title("Severe Weather Events Dashboard")
 
