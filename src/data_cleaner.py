@@ -161,6 +161,11 @@ def clean_damage_cols(df):
         if col in df.columns:
             df[col] = df[col].map(parse_damage)
             df[col] = pd.to_numeric(df[col], errors='coerce')  # converts to float dtype with NaNs
+    # Create TOTAL_DAMAGE column (sum crops + property)
+    if all(col in df.columns for col in damage_amount_cols):
+        df["TOTAL_DAMAGE"] = df['DAMAGE_PROPERTY'].fillna(0) + df['DAMAGE_CROPS'].fillna(0)
+        df["TOTAL_DAMAGE"].replace(0, pd.NA, inplace=True)  # optional: treat 0 as missing
+
            
 
 
